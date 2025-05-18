@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use Exception;
-use Gemini;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use GeminiAPI\Client;
+use GeminiAPI\Resources\ModelName;
+use GeminiAPI\Resources\Parts\TextPart;
 
 class CommentController extends Controller
 {
@@ -13,7 +15,7 @@ class CommentController extends Controller
 
     public function __construct()
     {
-        $this->geminiClient = Gemini::client(env('GEMINI_API_KEY'));
+        $this->geminiClient =new  Client(env('GEMINI_API_KEY'));
     }
 
     public function replyComments(array $comments)
@@ -25,7 +27,7 @@ class CommentController extends Controller
             $replyComments = [];
 
             foreach ($comments as $comment) {
-                $generatedComment = $this->generateComment($comment['text'],$comment['username']);
+                $generatedComment = $this->generateComment($comment['text'], $comment['username']);
                 Log::alert("Generate Komentar Untuk : " . $comment['username'] . " || Generated Comment : " . $generatedComment);
                 array_push($replyComments, [
                     "comment_id_audience" => $comment['comment_id'],
@@ -60,7 +62,10 @@ class CommentController extends Controller
         try {
             $prompt = "Kamu adalah asisten virtual cerdas bernama Christy yang diciptakan oleh Diki, programmer tampan dan intelek. Tugasmu adalah membalas komentar di akun Instagramku. Fokus pada interaksi yang positif dan hindari topik sensitif seperti sara dan politik. Batasi panjang karakter setiap balasanmu maksimal 2000 karakter. **Berikan hanya satu balasan yang spesifik dan personal.**Username : $username **Komentar: $comment ** awali komentar kamu dengan @username";
 
-            $response = $this->geminiClient->geminiPro()->generateContent($prompt);
+            $response = $this->geminiClient->generativeModel(ModelName::GEMINI_1_5_FLASH)->generateContent(
+                new TextPart($prompt)
+            );
+
             return $response->text();
         } catch (\Throwable $th) {
             Log::error("CommentController::class -> generateComment() || " . $th->getMessage());
